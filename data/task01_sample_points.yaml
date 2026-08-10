@@ -1,0 +1,18 @@
+camera_matrix: []
+
+distort_coeffs: []
+
+armor:
+  unit: meter
+  small_width: 0.135
+  small_height: 0.055
+  large_width: 0.230
+  large_height: 0.055
+
+sample:
+  armor_type: small
+  corners:
+    - [600, 420]
+    - [720, 418]
+    - [724, 470]
+    - [596, 472]
