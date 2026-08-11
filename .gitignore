@@ -3,6 +3,5 @@ AGENTS.md
 CLAUDE.md
 .vscode
 output/
-data/
 cmake-build-debug/
 build/
