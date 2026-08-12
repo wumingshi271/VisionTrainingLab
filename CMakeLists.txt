@@ -1,12 +1,27 @@
-cmake_minimum_required(VERSION 4.2)
+cmake_minimum_required(VERSION 3.16)
 project(VisionTrainingLab)
 
-set(CMAKE_CXX_STANDARD 14)
+# 使用 C++ 17 标准
+set(CMAKE_CXX_STANDARD 17)
+# 强制编译器使用 C++ 17 标准
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include_directories(include)
-include_directories(include/task01)
+# 不使用自己扩展的 gnu++17 标准
+# 而使用标准库中的标准
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_executable(VisionTrainingLab
-        include/task01/armor_pose_solver.hpp
-        src/task01/armor_pose_solver.cpp
-        src/task01/task01_main.cpp)
+# 依赖发现
+# 发现 OpenCV 库
+find_package(
+    OpenCV REQUIRED 
+        COMPONENTS 
+            core 
+            calib3d 
+            imgproc 
+            highgui
+)
+
+# ----------------------------- # Subdirectories # -----------------------------
+
+# 添加 task01 子目录
+add_subdirectory(src/task01)

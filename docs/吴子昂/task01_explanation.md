@@ -486,7 +486,7 @@ task01_main 不应：
 本项目当前遵循以下构建约束：
 
 - 使用仓库规定的 CMake 4.2；
-- 使用 C++14；
+- 使用 C++17；
 - 顶层 CMakeLists.txt 作为构建入口；
 - 目标程序名称为 VisionTrainingLab；
 - build 或 cmake-build-debug 等目录只保存生成物，不属于源代码。
