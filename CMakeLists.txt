@@ -15,9 +15,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(
     OpenCV REQUIRED 
         COMPONENTS 
-            core 
-            calib3d 
-            imgproc 
+            core
+            calib3d
+            imgproc
+            imgcodecs
             highgui
 )
 

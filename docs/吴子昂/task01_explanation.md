@@ -104,7 +104,7 @@ ArmorPoseSolver 的公共方法为：
 | --------------- | ----------------- | ---------- | ----------- |
 | ArmorPoseSolver | 相机内参、畸变参数、两种装甲板尺寸 | 已配置的解算模块   | 构造时完成长期配置绑定 |
 | solve           | 四个图像角点、装甲板类型      | PoseResult | 最主要的业务接口    |
-| getObjectPoints | 装甲板类型             | 四个三维模型角点   | 为测试和模型检查提供  |
+| getObjectPoints | 装甲板类型             | 四个三维模型角点   | 为模型检查提供  |
 
 
 除上述内容外，不向调用者公开 PnP、欧拉角和误差计算的内部步骤。
@@ -282,7 +282,7 @@ solve 不负责：
 - 维护跨帧状态；
 - 进行目标跟踪。
 
-因此它是无外部副作用的同步计算接口，适合被主程序、测试程序或后续任务复用。
+因此它是无外部副作用的同步计算接口，适合被主程序或后续任务复用。
 
 ## 9. getObjectPoints 接口设计
 
@@ -313,11 +313,10 @@ LT → RT → RB → LB。
 该方法主要服务于：
 
 - 验证小、大装甲板的模型尺寸；
-- 构造合成测试数据；
 - 检查图像点与模型点的对应关系；
 - 为外部可视化适配器提供模型点。
 
-普通业务调用只需要 solve。getObjectPoints 是用于测试和模型检查的扩展接口。
+普通业务调用只需要 solve。getObjectPoints 是用于模型检查的扩展接口。
 
 ## 10. 坐标系和单位契约
 
@@ -469,7 +468,7 @@ task01_main 是运行适配器，不是位姿模块的一部分。
 4. 创建 ArmorPoseSolver；
 5. 调用 solve；
 6. 根据 PoseResult 输出结果；
-7. 在需要时执行测试或可视化。
+7. 在需要时执行可视化。
 
 task01_main 不应：
 
@@ -488,7 +487,7 @@ task01_main 不应：
 - 使用仓库规定的 CMake 4.2；
 - 使用 C++17；
 - 顶层 CMakeLists.txt 作为构建入口；
-- 目标程序名称为 VisionTrainingLab；
+- 任务一运行目标名称为 task01；
 - build 或 cmake-build-debug 等目录只保存生成物，不属于源代码。
 
 本节只描述构建架构，不提供 CMake 代码。
@@ -501,7 +500,7 @@ task01_main 不应：
 - 发现 OpenCV 依赖；
 - 为目标提供公共头文件搜索路径；
 - 收集任务一的头文件、实现文件和运行入口；
-- 创建 VisionTrainingLab 构建目标；
+- 创建 task01_pose_solver 库和 task01 运行目标；
 - 将 OpenCV 依赖链接到需要它的目标。
 
 顶层构建文件不负责：
@@ -516,13 +515,14 @@ task01_main 不应：
 
 ### 16.2 目标组成
 
-当前阶段采用一个可执行目标，组成关系如下：
+当前阶段采用位姿静态库和运行程序两个目标：
 
 ```
-VisionTrainingLab
-├── task01_main.cpp：运行入口和适配流程
-├── armor_pose_solver.cpp：位姿模块实现
-└── armor_pose_solver.hpp：公共接口说明
+task01_pose_solver
+└── armor_pose_solver.cpp：位姿模块实现
+
+task01
+└── task01_main.cpp：配置适配、位姿输出和可视化
 ```
 
 头文件被纳入目标是为了方便 IDE 和构建系统展示依赖，但真正的编译实现来自 cpp 文件。
@@ -535,6 +535,7 @@ ArmorPoseSolver 的直接依赖主要是：
 
 - OpenCV core：矩阵、向量和点类型；
 - OpenCV calib3d：PnP、旋转转换和投影计算。
+- OpenCV imgproc 和 imgcodecs：可视化绘制和 PNG 输出。
 
 如果运行入口保留图像显示，还需要由运行适配器承担 highgui 依赖。
 
@@ -545,30 +546,27 @@ ArmorPoseSolver 的直接依赖主要是：
 依赖方向必须保持单向：
 
 ```
-VisionTrainingLab
-→ task01_main
+task01
+→ task01_pose_solver
 → ArmorPoseSolver
 → OpenCV
 ```
 
 配置适配器和可视化适配器由 task01_main 使用。
 
-ArmorPoseSolver 不依赖 task01_main，也不依赖具体 YAML 文件。未来更换为其他入口、测试程序或机器人节点时，仍可复用同一个模块。
+ArmorPoseSolver 不依赖 task01_main，也不依赖具体 YAML 文件。未来更换为其他入口或机器人节点时，仍可复用同一个模块。
 
 ### 16.5 任务扩展时的演进
 
-当任务数量增加时，可以将 armor_pose_solver.cpp 提取为独立的任务一静态库目标。
-
-演进后的关系为：
+当前已经将 armor_pose_solver.cpp 提取为独立的任务一静态库目标：
 
 - task01_pose_solver：只包含位姿模块实现；
-- VisionTrainingLab：链接 task01_pose_solver，负责运行；
-- 后续测试目标：链接 task01_pose_solver，直接通过公共接口测试；
+- task01：链接 task01_pose_solver，负责运行、日志和可视化；
 - 后续任务目标：按需链接 task01_pose_solver。
 
 此时顶层 CMake 负责组织子目录和目标，任务目录的构建描述负责任务一自身的源文件与依赖。
 
-是否拆分独立库应以实际出现第二个适配器为依据。只有一个调用者时，保持简单的单目标结构；出现测试目标或后续任务复用时，再建立独立库接缝。
+后续任务目标应链接 task01_pose_solver，不应复制位姿实现。
 
 ### 16.6 头文件可见性
 
@@ -578,30 +576,7 @@ src/task01 是实现目录，不应作为公共头文件搜索路径暴露给其
 
 这种目录和依赖安排能把实现细节留在模块内部，减少调用者对文件布局的依赖。
 
-## 17. 测试接口设计
-
-当前仓库没有测试框架和 CTest 目标。
-
-未来测试应只通过 ArmorPoseSolver 的公共接口验证行为。接口本身就是测试接缝，不需要读取 cpp 文件内部状态。
-
-测试范围至少包括：
-
-- 小装甲板和大装甲板的正常输入；
-- 四角点顺序为 LT、RT、RB、LB；
-- 角点数量错误；
-- 角点包含非有限值；
-- 四边形退化；
-- 相机配置不完整或尺寸非法；
-- PnP 失败或目标位于相机后方；
-- 重投影误差为有限值；
-- getObjectPoints 的点序与尺寸；
-- 单位和坐标系的一致性。
-
-测试数据应保持确定性。合成测试可以使用 getObjectPoints 生成已知模型输入，再通过公开的 solve 检查结果。
-
-当正式增加测试目标时，测试目标只需要链接 task01_pose_solver，不应复制位姿实现。
-
-## 18. 接口使用原则
+## 17. 接口使用原则
 
 调用者只需要记住以下关系：
 
@@ -624,9 +599,9 @@ PoseResult
 - 检查 PoseResult.success；
 - 读取结果字段。
 
-getObjectPoints 只用于模型检查、合成测试和可视化适配。
+getObjectPoints 只用于模型检查和可视化适配。
 
-## 19. 最终架构总结
+## 18. 最终架构总结
 
 任务一的公共接缝为：
 
@@ -679,4 +654,22 @@ getObjectPoints
 → VisionTrainingLab
 ```
 
-CMake 只负责建立这条编译依赖关系，不承载算法实现和运行时业务逻辑。这样可以让接口保持小而稳定，让实现集中在一个模块中，并为测试和后续任务复用留下清晰的接缝。
+CMake 只负责建立这条编译依赖关系，不承载算法实现和运行时业务逻辑。这样可以让接口保持小而稳定，让实现集中在一个模块中，并为后续任务复用留下清晰的接缝。
+
+## 19. 实际运行
+
+在项目根目录执行：
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build --clean-first
+./build/bin/task01 configs/task01_pose_solver.yaml data/task01_sample_points.yaml /tmp/task01_visualization.png
+```
+
+运行程序会依次输出：
+
+- 相机内参、装甲板类型和角点顺序；
+- 当前样例的 rvec、tvec、距离、yaw/pitch/roll 和重投影误差；
+- 可视化 PNG 的保存路径。
+
+可视化图片包含四个角点编号、装甲板边框、重投影点和 XYZ 坐标轴。尺寸单位在配置适配器中统一转换为 meter，因此 solvePnP 输出的 tvec 和 distance 也使用 meter。
