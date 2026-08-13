@@ -1,3 +1,7 @@
 .idea
 AGENTS.md
 CLAUDE.md
+.vscode
+output/
+cmake-build-debug/
+build/

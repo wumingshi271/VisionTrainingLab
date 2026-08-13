@@ -1,0 +1,13 @@
+%YAML:1.0
+---
+camera_matrix: [2384.40209203318, 0, 687.833772070409,
+                0, 2385.71781966791, 561.500396379910,
+                0, 0, 1]
+distort_coeffs: [-0.0344620642322987, 0.132010158333535, 0, 0, 0]
+
+armor:
+  unit: meter
+  small_width: 0.135
+  small_height: 0.055
+  large_width: 0.230
+  large_height: 0.055
